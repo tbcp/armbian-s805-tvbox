@@ -6,7 +6,8 @@
 #                        s805_autoscript           boots Armbian on the stock u-boot
 #                        dtb/meson8b-xsr.dtb       SD slot on the faster sdhc controller
 #                        dtb.img                   fallback copy of the stock DTB
-# Root partition (ext4): CPU pinned to 1.536 GHz   (prevents multi-second freezes)
+# Root partition (ext4): hostname s805box          (instead of Armbian's "onecloud")
+#                        CPU pinned to 1.536 GHz   (prevents multi-second freezes)
 #                        stable eth0 MAC           (generated on first boot, or MAC=...)
 #                        APT hook                  keeps meson8b-xsr.dtb in sync with kernel updates
 #
@@ -15,6 +16,7 @@
 # Usage: ./build-image.sh [output.img]
 #   IMG_XZ=/path/to/Armbian_...img.xz ./build-image.sh   use an already downloaded image
 #   MAC=aa:bb:cc:dd:ee:ff ./build-image.sh               use this MAC instead of a generated one
+#   BOX_HOSTNAME=mybox ./build-image.sh                  hostname (default: s805box)
 
 set -euo pipefail
 
@@ -32,6 +34,10 @@ export MTOOLS_SKIP_CHECK=1
 for t in curl xz sha256sum fdisk mkimage mcopy debugfs e2fsck python3; do
   command -v "$t" >/dev/null || { echo "missing tool: $t"; exit 1; }
 done
+BOX_HOSTNAME="${BOX_HOSTNAME:-s805box}"
+if ! [[ "$BOX_HOSTNAME" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
+  echo "BOX_HOSTNAME must be lowercase letters, digits and dashes"; exit 1
+fi
 if [ -n "${MAC:-}" ] && ! [[ "$MAC" =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
   echo "MAC must look like aa:bb:cc:dd:ee:ff"; exit 1
 fi
@@ -72,7 +78,7 @@ else
 fi
 
 # --- 3. root partition ------------------------------------------------------
-echo ">> root partition: CPU frequency, MAC service, APT hook"
+echo ">> root partition: hostname $BOX_HOSTNAME, CPU frequency, MAC service, APT hook"
 dd if="$OUT" of="$WORK/root.img" bs=512 skip="$P2_START" count="$P2_SECTORS" status=none
 
 debugfs -R "cat /etc/default/cpufrequtils" "$WORK/root.img" 2>/dev/null > "$WORK/cpufrequtils"
@@ -81,8 +87,14 @@ sed -i -e 's/^GOVERNOR=.*/GOVERNOR=performance/' \
        -e 's/^MIN_SPEED=.*/MIN_SPEED=1536000/' \
        -e 's/^MAX_SPEED=.*/MAX_SPEED=1536000/' "$WORK/cpufrequtils"
 
+echo "$BOX_HOSTNAME" > "$WORK/hostname"
+debugfs -R "cat /etc/hosts" "$WORK/root.img" 2>/dev/null | sed "s/\bonecloud\b/$BOX_HOSTNAME/g" > "$WORK/hosts"
+grep -q "$BOX_HOSTNAME" "$WORK/hosts" || { echo "unexpected /etc/hosts in image"; exit 1; }
+
 # files to install:  source  target  mode
 FILES=(
+  "$WORK/hostname"                                       /etc/hostname                         0644
+  "$WORK/hosts"                                          /etc/hosts                            0644
   "$WORK/cpufrequtils"                                   /etc/default/cpufrequtils             0644
   "$REPO/rootfs/usr/local/sbin/xsr-dtb-build"            /usr/local/sbin/xsr-dtb-build         0755
   "$REPO/rootfs/usr/local/sbin/s805-pin-mac"             /usr/local/sbin/s805-pin-mac          0755

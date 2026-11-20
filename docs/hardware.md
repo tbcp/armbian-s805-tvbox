@@ -30,7 +30,7 @@ There's no public device tree or documentation for "YDH-A17". What made it worka
 - Android's own device tree (dumped from `/proc/device-tree` under an old 3.10 kernel, see [`reference/android-devicetree-m8b_m201_1G.dts`](../reference/android-devicetree-m8b_m201_1G.dts)) has the id `m8b_m201_1G`: a clone of Amlogic's **M201 reference design**, which most MXQ S805 boxes are built on.
 - The Android Ethernet driver logs PHY ID `0x02430c54`, an **IC Plus IP101A/G**. Mainline's [`meson8b-mxq.dts`](https://github.com/torvalds/linux/blob/v6.12/arch/arm/boot/dts/amlogic/meson8b-mxq.dts) (TRONFY MXQ S805) describes exactly that PHY at the same address, plus an SD slot.
 
-So `meson8b-mxq.dtb` was the first choice, and it worked unmodified (4 cores, 983 MB, Ethernet, HDMI). The only change made later is moving the SD slot to the faster controller ([details](fixes.md#faster-sd-card-the-sdhc-controller)). That's also why tools like Geekbench report the box as "TRONFY MXQ S805".
+So `meson8b-mxq.dtb` was the first choice, and it worked unmodified (4 cores, 983 MB, Ethernet, HDMI). The changes made later: the SD slot moved to the faster controller ([details](fixes.md#faster-sd-card-the-sdhc-controller)), the Wi-Fi enabled, and the model name changed from "TRONFY MXQ S805" to "Amlogic S805 TV Box" (shown by tools like fastfetch; the Geekbench result above predates that).
 
 ## Internal NAND
 

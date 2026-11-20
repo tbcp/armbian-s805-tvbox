@@ -42,7 +42,7 @@ git clone https://github.com/tbcp/armbian-s805-tvbox && cd armbian-s805-tvbox
 
 Needs `curl xz fdisk mkimage mtools debugfs python3` (packages on Debian/Ubuntu: `u-boot-tools mtools e2fsprogs`; on Arch: `uboot-tools mtools e2fsprogs`).
 
-The script downloads the official Armbian image, checks its checksum, and adds the boot files and fixes this box needs ([details](docs/how-it-works.md#what-build-imagesh-changes)). Optional: `MAC=aa:bb:cc:dd:ee:ff ./build-image.sh` to give the box a specific MAC address, for example its original one so it keeps its DHCP lease.
+The script downloads the official Armbian image, checks its checksum, and adds the boot files and fixes this box needs ([details](docs/how-it-works.md#what-build-imagesh-changes)). Optional: `MAC=aa:bb:cc:dd:ee:ff ./build-image.sh` to give the box a specific MAC address (for example its original one, so it keeps its DHCP lease), and `BOX_HOSTNAME=name` for a hostname other than `s805box`.
 
 ### 2. Write it to an SD card
 
@@ -67,7 +67,7 @@ The box reboots, runs the script, resets, and boots Armbian. From now on it boot
 
 ### 4. Log in
 
-Find the box's IP address in your router, then `ssh root@<box-ip>`, password `1234`. Armbian asks you to set a new root password and create a user. Or use HDMI and a USB keyboard.
+Find the box's IP address in your router (it shows up as `s805box`), then `ssh root@<box-ip>`, password `1234`. Armbian asks you to set a new root password and create a user. Or use HDMI and a USB keyboard.
 
 **The first 10 minutes or so the SD card is busy in the background** (ext4 zeroing the inode tables of the freshly grown filesystem). That's normal, and it happens only once.
 
@@ -79,7 +79,7 @@ That's it. All fixes are already in the image; nothing to run afterwards. To use
 |---|---|
 | Boots Android instead | The boot order wasn't changed: repeat step 3 with the card inserted. |
 | Stuck at "Waiting for root device" (HDMI) | The faster SD controller doesn't work on your board. Put the card in a PC and delete `dtb/meson8b-xsr.dtb` from the boot partition. The box then boots with the stock device tree (slower SD). |
-| Can't find the box on the network | It gets a new MAC address on first boot, so look for a new device in your router's client list. Or connect HDMI and a keyboard and run `ip a`. |
+| Can't find the box on the network | It gets a new MAC address on first boot, so look for a new device called `s805box` in your router's client list. Or connect HDMI and a keyboard and run `ip a`. |
 | Random freezes of several seconds | Check `cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor` says `performance`. See [fixes](docs/fixes.md#freezes-cpu-frequency). |
 
 **Undo everything:** remove the SD card and the box boots Android. (The changed boot order stays, but without a card it behaves like stock.)

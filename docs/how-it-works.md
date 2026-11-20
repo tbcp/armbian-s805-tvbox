@@ -58,7 +58,7 @@ On the **boot partition** (FAT), added with `mtools`:
 |---|---|
 | `aml_autoscript`, `aml_autoscript.zip` | One-time boot-order change (update mode / "Update & Backup" app) |
 | `s805_autoscript` | Boots Armbian on every start |
-| `dtb/meson8b-xsr.dtb` | Stock MXQ device tree with the SD slot moved to the faster controller and the Wi-Fi enabled, prebuilt from this exact image's `meson8b-mxq.dtb` |
+| `dtb/meson8b-xsr.dtb` | Stock MXQ device tree with the SD slot moved to the faster controller, the Wi-Fi enabled and the model name set to "Amlogic S805 TV Box", prebuilt from this exact image's `meson8b-mxq.dtb` |
 | `dtb.img` | Fallback copy of the stock device tree |
 | `*.cmd` | Sources of the two scripts, for reference |
 
@@ -66,11 +66,12 @@ On the **root partition** (ext4), written with `debugfs`:
 
 | File | Purpose |
 |---|---|
+| `/etc/hostname`, `/etc/hosts` | Hostname `s805box` instead of `onecloud` (choose another with `BOX_HOSTNAME=…`) |
 | `/etc/default/cpufrequtils` | CPU fixed at 1.536 GHz, `performance` governor ([why](fixes.md#freezes-cpu-frequency)) |
 | `/usr/local/sbin/s805-pin-mac` + `s805-pin-mac.service` | Generates a stable MAC on first boot ([why](fixes.md#stable-mac-address)). With `MAC=…`, the `.link` file is written at build time instead. |
 | `/usr/local/sbin/xsr-dtb-build` + `/etc/apt/apt.conf.d/99xsr-dtb` | Rebuilds `meson8b-xsr.dtb` after every `apt` run, so kernel and DTB updates carry over ([details](fixes.md#faster-sd-card-the-sdhc-controller)) |
 
-Everything else is byte-identical to the official image.
+Everything else is byte-identical to the official image. That's why the login banner and `armbian-config` still call the board **OneCloud**: they read `/etc/armbian-release`, which belongs to Armbian's board package. Changing it would be overwritten by the next `apt upgrade`, and Armbian uses the board name to pick its packages, so it's left alone.
 
 ## Kernel updates
 

@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -I
 """
 Build /boot/dtb/meson8b-xsr.dtb from Armbian's stock meson8b-mxq.dtb:
+ - model name set to "Amlogic S805 TV Box" (instead of "TRONFY MXQ S805");
  - SD card slot moved from the slow "sdio" controller (meson-mx-sdio) to the
    "sdhc" controller (meson-mx-sdhc) via the sdxc_b pin group (CARD_0..CARD_4);
  - the freed "sdio" controller drives the on-board RTL8189ES Wi-Fi on port A
@@ -22,6 +23,7 @@ OUT = sys.argv[2] if len(sys.argv) > 2 else "/boot/dtb/meson8b-xsr.dtb"
 SD_MAX_FREQ = 50000000    # SD high-speed, 3.3 V signalling only on this board
 WIFI_MAX_FREQ = 30000000  # same as Android's sdio f_max
 GPIOX_11, GPIOAO_6 = 0x0b, 0x06
+MODEL = "Amlogic S805 TV Box"
 
 
 def fail(msg):
@@ -58,6 +60,9 @@ except (OSError, subprocess.CalledProcessError) as e:
 
 if "sdxc-b {" in dts:
     fail("base DTB already has an sdxc-b node, refusing to patch twice")
+
+# --- 0. display name (shown as "Host:" by fastfetch etc.); compatible stays as-is
+dts = re.sub(r'^(\t)model = "[^"]*";$', rf'\1model = "{MODEL}";', dts, count=1, flags=re.M)
 
 # --- 1. read card-detect GPIO + vmmc supply from the stock sdio slot, then disable sdio
 s, e = block(dts, "mmc@8c20")
