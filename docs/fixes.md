@@ -1,6 +1,6 @@
 # Fixes in the image
 
-All of these are applied by `build-image.sh`. This page explains what each one fixes and how to check it.
+Nothing to do here: `build-image.sh` puts all of these into the image automatically, and the box applies them when it boots. This page explains what each fix does and how to check that it's working.
 
 ## Freezes: CPU frequency
 
