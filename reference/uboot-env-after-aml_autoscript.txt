@@ -1,0 +1,76 @@
+720poutputheight=719
+720poutputwidth=1279
+720poutputx=0
+720poutputy=0
+baudrate=115200
+bootcmd=run start_autoscript; run storeboot
+bootdelay=1
+bootfile=boot.img
+bootfromnand=0
+bootm_low=0x00000000
+bootm_size=0x80000000
+bootpath=u-boot.bin
+bootsize=100000
+bootstart=0
+chipname=8726m8
+console=ttyS0,115200n8
+cvbsmode=576cvbs
+digitaudiooutput=PCM
+display_bpp=16
+display_color_bg=0
+display_color_fg=0xffff
+display_color_format_index=16
+display_height=1080
+display_layer=osd2
+display_width=1920
+ethaddr=XX:XX:XX:XX:XX:XX  (redacted)
+fb_addr=0x7900000
+fb_height=720
+fb_width=1280
+firstboot=1
+gatewayip=10.18.9.1
+get_dt=checkhw
+has.accelerometer=false
+hdmimode=720p
+hostname=arm_m8
+initargs=init=/init console=ttyS0,115200n8 no_console_suspend  storage=1
+initrd_high=60000000
+ipaddr=10.18.9.97
+loadaddr=0x12000000
+loadaddr_logo=0x13000000
+mmcargs=setenv bootargs console=${console} boardname=m8_board
+netmask=255.255.255.0
+normalsize=400000
+normalstart=1000000
+outputmode=720p
+p0path=uImage
+p0size=400000
+p0start=1000000
+p1path=android.rootfs
+p1size=8000000
+p1start=1400000
+partnum=2
+preboot=if itest ${upgrade_step} == 3; then run prepare; run storeargs; run update; fi; if itest ${upgrade_step} == 1; then  defenv; setenv upgrade_step 2; saveenv;fi; run prepare;run storeargs;get_rebootmode; clear_rebootmode; echo reboot_mode=${reboot_mode};run update_key; run update_ir; run switch_bootmode
+preloaddtb=imgread dtb boot ${loadaddr}
+prepare=logo size ${outputmode}; video open; video clear; video dev open ${outputmode};imgread pic logo bootup ${loadaddr_logo}; bmp display ${bootup_offset}; bmp scale;
+reboot_mode=normal
+recovery=echo enter recovery;if mmcinfo; then if fatload mmc 0 ${loadaddr} recovery.img; then bootm;fi;fi; if usb start 0; then if fatload usb 0 ${loadaddr} recovery.img; then bootm; fi;fi;if imgread kernel recovery ${loadaddr}; then bootm; else echo no recovery in flash; fi;
+sdc_burning=sdc_burn ${sdcburncfg}
+sdcburncfg=aml_sdc_burn.ini
+serverip=10.18.9.113
+start_autoscript=if usb start; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi;
+start_mmc_autoscript=if fatload mmc 0 11000000 s805_autoscript; then autoscr 11000000; fi;
+start_usb_autoscript=if fatload usb 0 11000000 s805_autoscript; then autoscr 11000000; fi; if fatload usb 1 11000000 s805_autoscript; then autoscr 11000000; fi; if fatload usb 2 11000000 s805_autoscript; then autoscr 11000000; fi; if fatload usb 3 11000000 s805_autoscript; then autoscr 11000000; fi;
+store=1
+storeargs=setenv bootargs ${bootargs} vdaccfg=${vdac_config} logo=osd1,loaded,${fb_addr},${outputmode},full hdmimode=${hdmimode} cvbsmode=${cvbsmode} androidboot.firstboot=${firstboot} hdmitx=${cecconfig};if unifykey get mac; then setenv bootargs ${bootargs} mac=${mac}; fi;
+storeboot=echo Booting...; if unifykey get usid; then  setenv bootargs ${bootargs} androidboot.serialno=${usid};fi;imgread kernel boot ${loadaddr};bootm;run recovery
+switch_bootmode=if test ${reboot_mode} = factory_reset; then run recovery;else if test ${reboot_mode} = update; then run update;else if test ${reboot_mode} = usb_burning; then run usb_burning;else if test ${wipe_data} = failed; then echo wipe_data=${wipe_data}; run recovery;else   fi;fi;fi;fi
+testaddr=0x12400000
+update=run usb_burning; if mmcinfo; then if fatexist mmc 0 ${sdcburncfg}; then run sdc_burning; else if fatload mmc 0 ${loadaddr} aml_autoscript; then autoscr ${loadaddr}; fi;run recovery;fi;else run recovery;fi;
+update_ir=if irdetect; then run update; fi
+update_key=saradc open 0; if saradc get_in_range 0 0x50; then msleep 50; if saradc get_in_range 0 0x50; then echo update by key...; run update; fi;fi
+upgrade_step=0
+usb_burning=update 1000
+vdac_config=0x10
+video_dev=tvout
+wipe_data=success

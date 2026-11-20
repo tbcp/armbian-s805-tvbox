@@ -1,0 +1,4 @@
+// Rebuild /boot/dtb/meson8b-xsr.dtb (SD slot on the sdhc controller) after every
+// dpkg run, so kernel/DTB package updates keep the custom DTB in sync.
+// Install as /etc/apt/apt.conf.d/99xsr-dtb
+DPkg::Post-Invoke { "if [ -x /usr/local/sbin/xsr-dtb-build ] && [ -f /boot/dtb/meson8b-mxq.dtb ]; then /usr/local/sbin/xsr-dtb-build || true; fi"; };

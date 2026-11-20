@@ -1,0 +1,14 @@
+[Unit]
+Description=Pin a stable eth0 MAC address (first boot only)
+DefaultDependencies=no
+After=local-fs.target sys-subsystem-net-devices-eth0.device
+Wants=sys-subsystem-net-devices-eth0.device network-pre.target
+Before=network-pre.target systemd-networkd.service
+ConditionPathExists=!/etc/systemd/network/10-eth0-mac.link
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/s805-pin-mac
+
+[Install]
+WantedBy=network-pre.target

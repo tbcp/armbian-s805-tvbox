@@ -1,0 +1,22 @@
+#!/bin/sh
+# First boot only: give eth0 a stable MAC address.
+# The mainline Ethernet driver makes up a random MAC on every boot, so the DHCP
+# address keeps changing. (Armbian writes a fixed MAC into netplan, but networkd
+# ignores it: the first matching .network file wins.) A systemd .link file works.
+# Runs before networking starts, so even the first DHCP request uses the new MAC.
+set -e
+LINK=/etc/systemd/network/10-eth0-mac.link
+[ -e "$LINK" ] && exit 0
+MAC=$(od -An -N5 -tx1 /dev/urandom | awk '{printf "02:%s:%s:%s:%s:%s", $1, $2, $3, $4, $5}')
+cat > "$LINK.tmp" <<EOT
+# Stable MAC for eth0 (generated on first boot by s805-pin-mac).
+# Replace with your box's real MAC if you like; takes effect on the next boot.
+[Match]
+OriginalName=eth0
+
+[Link]
+MACAddress=$MAC
+EOT
+mv "$LINK.tmp" "$LINK"
+ip link set dev eth0 address "$MAC" || true
+echo "s805-pin-mac: eth0 MAC pinned to $MAC"
