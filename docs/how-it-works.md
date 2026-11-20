@@ -47,7 +47,7 @@ So: **official Armbian Onecloud image + `meson8b-mxq.dtb` from that image + our 
 | `console=ttyAML0,115200n8 console=tty1` | Serial port and HDMI. `tty1` last makes HDMI the main console, so the first-login wizard shows on the TV. |
 | Load addresses `0x14000000` / `0x15000000` / `0x11800000` | Staging addresses from balbes150's scripts, proven on stock S805 u-boots. `bootm` then moves the kernel to its load address `0x00208000`. |
 | `fatload mmc 0 …` | `mmc 0` is the SD slot on the stock u-boot. |
-| `meson8b-xsr.dtb` → `meson8b-mxq.dtb` → `dtb.img` | The custom device tree (SD on the faster controller) if present, else Armbian's stock MXQ one, else a fallback copy. |
+| `meson8b-xsr.dtb` → `meson8b-mxq.dtb` → `dtb.img` | The custom device tree (SD on the faster controller, Wi-Fi) if present, else Armbian's stock MXQ one, else a fallback copy. |
 | Final `echo` | If any load fails, the script ends and `bootcmd` continues with `storeboot`: the box **boots Android instead of hanging**. |
 
 ## What `build-image.sh` changes
@@ -58,7 +58,7 @@ On the **boot partition** (FAT), added with `mtools`:
 |---|---|
 | `aml_autoscript`, `aml_autoscript.zip` | One-time boot-order change (update mode / "Update & Backup" app) |
 | `s805_autoscript` | Boots Armbian on every start |
-| `dtb/meson8b-xsr.dtb` | Stock MXQ device tree with the SD slot moved to the faster controller, prebuilt from this exact image's `meson8b-mxq.dtb` |
+| `dtb/meson8b-xsr.dtb` | Stock MXQ device tree with the SD slot moved to the faster controller and the Wi-Fi enabled, prebuilt from this exact image's `meson8b-mxq.dtb` |
 | `dtb.img` | Fallback copy of the stock device tree |
 | `*.cmd` | Sources of the two scripts, for reference |
 

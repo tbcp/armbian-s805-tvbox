@@ -15,7 +15,7 @@ Turns a cheap Amlogic **S805** Android TV box into a small Debian server: offici
 
 ## Tested hardware
 
-A-sure "XSR" box, board `YDH-A17-S805 1G+8G`: S805 (4× Cortex-A5, 1.5 GHz), 1 GB RAM, 8 GB NAND, 100 Mbit Ethernet. It's a clone of Amlogic's **M201** reference design, like most MXQ-style S805 boxes, so those will probably work too. [More about the hardware](docs/hardware.md).
+A-sure "XSR" box, board `YDH-A17-S805 1G+8G`: S805 (4× Cortex-A5, 1.5 GHz), 1 GB RAM, 8 GB NAND, 100 Mbit Ethernet, Realtek RTL8189ETV Wi-Fi. It's a clone of Amlogic's **M201** reference design, like most MXQ-style S805 boxes, so those will probably work too. [More about the hardware](docs/hardware.md).
 
 | | |
 |---|---|
@@ -27,7 +27,7 @@ A-sure "XSR" box, board `YDH-A17-S805 1G+8G`: S805 (4× Cortex-A5, 1.5 GHz), 1 G
 | SD card speed | ✅ about 12 MB/s read, 11 MB/s write (hardware limit of the slot) |
 | Kernel updates via `apt` | ✅ |
 | Internal NAND | ❌ no mainline driver, the OS lives on the SD card |
-| Wi-Fi | not tested |
+| Wi-Fi | ✅ RTL8189ETV, 2.4 GHz only ([details](docs/fixes.md#wi-fi-rtl8189etv)) |
 
 Good for Pi-hole and small Docker containers. Geekbench 5 (32-bit): 74 single-core, 142 multi-core, between a Raspberry Pi 2 and 3.
 
@@ -71,7 +71,7 @@ Find the box's IP address in your router, then `ssh root@<box-ip>`, password `12
 
 **The first 10 minutes or so the SD card is busy in the background** (ext4 zeroing the inode tables of the freshly grown filesystem). That's normal, and it happens only once.
 
-That's it. All fixes are already in the image; nothing to run afterwards.
+That's it. All fixes are already in the image; nothing to run afterwards. To use Wi-Fi instead of (or besides) Ethernet: `armbian-config` → Network.
 
 ## Troubleshooting
 

@@ -1,13 +1,17 @@
 #!/usr/bin/python3 -I
 """
-Build /boot/dtb/meson8b-xsr.dtb from Armbian's stock meson8b-mxq.dtb, moving the
-SD card slot from the slow "sdio" controller (meson-mx-sdio) to the "sdhc"
-controller (meson-mx-sdhc) via the sdxc_b pin group (CARD_0..CARD_4).
+Build /boot/dtb/meson8b-xsr.dtb from Armbian's stock meson8b-mxq.dtb:
+ - SD card slot moved from the slow "sdio" controller (meson-mx-sdio) to the
+   "sdhc" controller (meson-mx-sdhc) via the sdxc_b pin group (CARD_0..CARD_4);
+ - the freed "sdio" controller drives the on-board RTL8189ES Wi-Fi on port A
+   (GPIOX_0-3, 8, 9), powered by GPIOX_11 + GPIOAO_6 (mmc-pwrseq-simple),
+   32 kHz clock out on GPIOX_10. Pins from the box's Android device tree.
 
 The stock DTB has no __symbols__, so a normal overlay can't be used; the DTB is
 decompiled, edited, and recompiled. Runs on the box (needs device-tree-compiler).
-If anything doesn't match expectations, the custom DTB is REMOVED so that
-s805_autoscript falls back to the stock meson8b-mxq.dtb.
+If the SD part doesn't match expectations, the custom DTB is REMOVED so that
+s805_autoscript falls back to the stock meson8b-mxq.dtb. If only the Wi-Fi part
+fails, the DTB is built without Wi-Fi (sdio controller left disabled).
 
 Usage: xsr-dtb-build [base.dtb] [out.dtb]
 """
@@ -15,7 +19,9 @@ import os, re, subprocess, sys, tempfile
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "/boot/dtb/meson8b-mxq.dtb"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "/boot/dtb/meson8b-xsr.dtb"
-SD_MAX_FREQ = 50000000  # SD high-speed, 3.3 V signalling only on this board
+SD_MAX_FREQ = 50000000    # SD high-speed, 3.3 V signalling only on this board
+WIFI_MAX_FREQ = 30000000  # same as Android's sdio f_max
+GPIOX_11, GPIOAO_6 = 0x0b, 0x06
 
 
 def fail(msg):
@@ -105,7 +111,86 @@ props = (f'status = "okay";\n'
 sdhc_new = sdhc.replace('status = "disabled";', props, 1)
 dts = dts[:s] + sdhc_new + dts[e:]
 
-# --- 5. compile and install atomically
+# --- 5. Wi-Fi on the freed sdio controller (optional: skipped if anything is off)
+class Skip(Exception):
+    pass
+
+
+def node_span(text, header):
+    m = re.search(r"^(\s*)" + re.escape(header) + r" \{\n", text, re.M)
+    if not m:
+        raise Skip(f"node '{header}' not found")
+    depth, i = 0, m.end() - 2
+    while i < len(text):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return m.start(), text.index("\n", i) + 1
+        i += 1
+    raise Skip(f"unbalanced node '{header}'")
+
+
+def add_wifi(d):
+    ph_ao, ph_sda, ph_32k, ph_seq = ph + 1, ph + 2, ph + 3, ph + 4
+    gpio_cbus = cd.group(1).strip("<>").split()[0]
+
+    # the AO gpio bank needs a phandle (GPIOAO_6 is a power pin)
+    s, e = node_span(d, "ao-bank@14")
+    blk = d[s:e]
+    if "phandle" in blk or "gpio-controller;" not in blk:
+        raise Skip("unexpected ao-bank@14")
+    i = re.match(r"(\s*)", blk).group(1) + "\t"
+    blk = blk.replace("gpio-controller;", f"gpio-controller;\n{i}phandle = <{ph_ao:#x}>;", 1)
+    d = d[:s] + blk + d[e:]
+
+    # sd_a pins (port A) and the 32 kHz clock pin, in the cbus pinctrl
+    s, e = node_span(d, "pinctrl@9880")
+    pc = d[s:e]
+    i = re.match(r"(\s*)", pc).group(1) + "\t"
+    nodes = (f"{i}sd-a {{\n{i}\tphandle = <{ph_sda:#x}>;\n{i}\tmux {{\n"
+             f'{i}\t\tgroups = "sd_d0_a", "sd_d1_a", "sd_d2_a", "sd_d3_a", "sd_clk_a", "sd_cmd_a";\n'
+             f'{i}\t\tfunction = "sd_a";\n{i}\t\tbias-pull-up;\n{i}\t}};\n{i}}};\n'
+             f"{i}xtal-32k-out {{\n{i}\tphandle = <{ph_32k:#x}>;\n{i}\tmux {{\n"
+             f'{i}\t\tgroups = "xtal_32k_out";\n{i}\t\tfunction = "xtal";\n{i}\t}};\n{i}}};\n')
+    close = pc.rstrip().rfind("};")
+    pc = pc[:close].rstrip("\t") + nodes + i[:-1] + pc[close:]
+    d = d[:s] + pc + d[e:]
+
+    # sdio controller: replace the SD slot with a Wi-Fi slot on port A
+    # (the driver only registers the FIRST mmc-slot child, so slot@1 must go)
+    s, e = node_span(d, "mmc@8c20")
+    mmc = d[s:e]
+    ss, se = node_span(mmc, "slot@1")
+    i = re.match(r"(\s*)", mmc[ss:se]).group(1)
+    slot = (f"{i}slot@0 {{\n{i}\tcompatible = \"mmc-slot\";\n{i}\treg = <0x00>;\n{i}\tstatus = \"okay\";\n"
+            f"{i}\tbus-width = <0x04>;\n{i}\tmax-frequency = <{WIFI_MAX_FREQ:#x}>;\n{i}\tcap-sd-highspeed;\n"
+            f"{i}\tnon-removable;\n{i}\tkeep-power-in-suspend;\n{i}\tno-sd;\n{i}\tno-mmc;\n"
+            f"{i}\tmmc-pwrseq = <{ph_seq:#x}>;\n{i}\tvmmc-supply = {vmmc.group(1)};\n{i}}};\n")
+    mmc = mmc[:ss] + slot + mmc[se:]
+    if 'status = "disabled";' not in mmc or "pinctrl-0 = <" not in mmc:
+        raise Skip("unexpected mmc@8c20")
+    mmc = mmc.replace('status = "disabled";', 'status = "okay";', 1)
+    mmc = re.sub(r"pinctrl-0 = <0x[0-9a-f]+>;", f"pinctrl-0 = <{ph_sda:#x}>;", mmc, count=1)
+    d = d[:s] + mmc + d[e:]
+
+    # power sequence (Android: power_on_pin2 = GPIOX_11, power_on_pin = GPIOAO_6)
+    seq = (f"\tsdio-pwrseq {{\n\t\tcompatible = \"mmc-pwrseq-simple\";\n"
+           f"\t\treset-gpios = <{gpio_cbus} {GPIOX_11:#04x} 0x01>, <{ph_ao:#x} {GPIOAO_6:#04x} 0x01>;\n"
+           f"\t\tpost-power-on-delay-ms = <0x0a>;\n\t\tpinctrl-0 = <{ph_32k:#x}>;\n\t\tpinctrl-names = \"default\";\n"
+           f"\t\tphandle = <{ph_seq:#x}>;\n\t}};\n")
+    last = d.rstrip().rfind("};")
+    return d[:last] + seq + d[last:]
+
+
+try:
+    dts = add_wifi(dts)
+    wifi = "Wi-Fi on sdio port A"
+except Skip as err:
+    wifi = f"no Wi-Fi ({err})"
+
+# --- 6. compile and install atomically
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), suffix=".dtb")
 os.close(fd)
 r = subprocess.run(["dtc", "-q", "-I", "dts", "-O", "dtb", "-o", tmp, "-"],
@@ -115,4 +200,4 @@ if r.returncode != 0:
     fail(f"dtc failed: {r.stderr.strip()}")
 os.replace(tmp, OUT)
 print(f"xsr-dtb-build: wrote {OUT} (SD slot on sdhc/sdxc_b, phandle {ph:#x}, "
-      f"cd-gpios {cd.group(1)}, vmmc {vmmc.group(1)})")
+      f"cd-gpios {cd.group(1)}, vmmc {vmmc.group(1)}; {wifi})")

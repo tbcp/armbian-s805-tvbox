@@ -9,7 +9,7 @@
 | RAM | 1 GB DDR3 (2× Nanya NT5CB256M16CP) |
 | Storage | 8 GB **raw NAND** (TSOP-48), not eMMC |
 | Ethernet | 100 Mbit, **IC Plus IP101A/G** PHY (`0x02430c54`), RMII |
-| Wi-Fi | Broadcom SDIO module (bcmdhd), not tested on mainline |
+| Wi-Fi | **Realtek RTL8189ETV** SDIO module, 2.4 GHz ([works](fixes.md#wi-fi-rtl8189etv)) |
 | Android | 4.4.2, kernel 3.10, Amlogic device tree id **`m8b_m201_1G`** |
 | RTC | none (the clock is set by NTP at boot) |
 | Reset / recovery button | **none** |

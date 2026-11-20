@@ -49,6 +49,25 @@ Both controllers can drive the SD pins: mainline's pinctrl has the `sdxc_b` grou
 
 Check: `dmesg | grep mmc0` should mention `c1108e00.mmc`. **If it doesn't work on your board**, the kernel waits forever at "Waiting for root device": delete `dtb/meson8b-xsr.dtb` from the card's boot partition on a PC.
 
+## Wi-Fi (RTL8189ETV)
+
+The Wi-Fi module is a **Realtek RTL8189ETV** (SDIO, 802.11n 1×1, **2.4 GHz only**). Android loaded `/system/lib/8189es.ko` for it. Mainline has no driver for it, but Armbian's kernel ships the out-of-tree `8189es` module, so all that's missing is a device tree description. The stock MXQ device tree has none.
+
+Moving the SD card to `sdhc` frees the `sdio` controller, and the Wi-Fi sits on its **port A**. From the box's Android device tree:
+
+| | |
+|---|---|
+| SDIO bus | `sdio` controller, port A: `GPIOX_0`–`3` (data), `GPIOX_8` (clk), `GPIOX_9` (cmd) |
+| Power | `GPIOAO_6` and `GPIOX_11` |
+| 32 kHz clock | `GPIOX_10` (`xtal_32k_out`) |
+| Max clock | 30 MHz (as in Android) |
+
+`xsr-dtb-build` replaces the `sdio` controller's SD slot (`slot@1`) with a Wi-Fi slot (`slot@0`, non-removable). The slot has to be *replaced*, not just disabled, because the mainline driver only registers the first slot node it finds. The build script then adds the `sd_a` and `xtal_32k_out` pin groups and an `mmc-pwrseq-simple` node that switches on both power GPIOs. If anything about this doesn't match, the script builds the DTB without Wi-Fi, keeping the faster SD card.
+
+Check: `cat /sys/bus/mmc/devices/mmc1:0001/device` shows `0x8179`, `lsmod | grep 8189es`, and `iw dev wlan0 scan` lists networks. The driver also creates a second interface, `wlan1` (for Wi-Fi Direct); ignore it. Set up a connection with `armbian-config` → Network.
+
+![Wi-Fi module](../photos/wifi-module.jpg)
+
 ## Stable MAC address
 
 On mainline, the Ethernet driver makes up a **random MAC on every boot**, so the DHCP address keeps changing. Armbian's first boot writes a fixed MAC into `/etc/netplan/20-eth-fixed-mac.yaml`, but that never takes effect: netplan puts it into a second `.network` file, and systemd-networkd only uses the first matching one (Armbian's `10-netplan-all-eth-interfaces.network`).
