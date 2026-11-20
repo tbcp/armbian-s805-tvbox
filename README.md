@@ -46,6 +46,8 @@ git clone https://github.com/tbcp/armbian-s805-tvbox && cd armbian-s805-tvbox
 
 Needs `curl xz fdisk mkimage mtools debugfs python3` (packages on Debian/Ubuntu: `u-boot-tools mtools e2fsprogs`; on Arch: `uboot-tools mtools e2fsprogs`).
 
+**Armbian version:** the script builds the Armbian release this repo was tested with. If Armbian has published a newer one, it tells you and asks whether to try it instead (answering "no" is the default). `./build-image.sh --latest` uses the newest one without asking, `--tested` never asks. A newer build is **untested** on this box: the image gets `UNTESTED` in its name, and it also needs `dtc` (`device-tree-compiler`) to build the faster-SD/Wi-Fi device tree. If you try one, please report in Issues whether it worked.
+
 The script downloads the official Armbian image, checks its checksum, and adds the boot files and fixes this box needs ([details](docs/how-it-works.md#what-build-imagesh-changes)). Optional: `MAC=aa:bb:cc:dd:ee:ff ./build-image.sh` to give the box a specific MAC address (for example its original one, so it keeps its DHCP lease), and `BOX_HOSTNAME=name` for a hostname other than `s805box`.
 
 ### 2. Write it to an SD card

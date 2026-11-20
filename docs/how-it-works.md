@@ -42,7 +42,7 @@ So: **official Armbian Onecloud image + `meson8b-mxq.dtb` from that image + our 
 | Part | Why |
 |---|---|
 | Only `setenv`, `if … then … fi`, `fatload`, `bootm` | Commands this old u-boot certainly has. Armbian's `boot.scr` uses things like `env import` that it lacks. |
-| `root=UUID=ac42c4c1-…` | The rootfs UUID of the official image, hard-coded because the old u-boot can't read `armbianEnv.txt`. **Change it if you switch to a different Armbian release.** |
+| `root=UUID=…` | The root filesystem's UUID. The old u-boot can't read Armbian's `armbianEnv.txt`, so it has to be in the script itself. `build-image.sh` reads it from the image and fills it in (each Armbian build has a different one). |
 | `rootflags=init_itable=0` | Works around a kernel 6.12 bug that can leave `ext4lazyinit` spinning at 100% CPU forever ([details](fixes.md#ext4lazyinit-stuck-at-100-cpu)). |
 | `console=ttyAML0,115200n8 console=tty1` | Serial port and HDMI. `tty1` last makes HDMI the main console, so the first-login wizard shows on the TV. |
 | Load addresses `0x14000000` / `0x15000000` / `0x11800000` | Staging addresses from balbes150's scripts, proven on stock S805 u-boots. `bootm` then moves the kernel to its load address `0x00208000`. |
@@ -72,6 +72,20 @@ On the **root partition** (ext4), written with `debugfs`:
 | `/usr/local/sbin/xsr-dtb-build` + `/etc/apt/apt.conf.d/99xsr-dtb` | Rebuilds `meson8b-xsr.dtb` after every `apt` run, so kernel and DTB updates carry over ([details](fixes.md#faster-sd-card-the-sdhc-controller)) |
 
 Everything else is byte-identical to the official image. That's why the login banner and `armbian-config` still call the board **OneCloud**: they read `/etc/armbian-release`, which belongs to Armbian's board package. Changing it would be overwritten by the next `apt upgrade`, and Armbian uses the board name to pick its packages, so it's left alone.
+
+## Newer Armbian builds
+
+`build-image.sh` builds the Armbian release the repo was tested with (`TESTED_VER` in the script). Armbian only keeps its last few community builds on GitHub, so the script falls back to a copy in this repo's v1.0 release once theirs is gone.
+
+It also asks Armbian (`dl.armbian.com/onecloud/Trixie_current_minimal`) for its newest Onecloud trixie image. If that's newer, the script offers it, or uses it with `--latest`. For such an untested build it:
+
+- verifies the download against Armbian's own checksum (`cache.armbian.com/…/<image>.sha`),
+- checks that the image has `uImage`, `uInitrd`, `dtb/meson8b-mxq.dtb`, `/etc/default/cpufrequtils` and the usual partition layout, and stops otherwise,
+- reads the root UUID from the image,
+- builds `meson8b-xsr.dtb` from that image's own stock DTB with `xsr-dtb-build` (needs `dtc`; without it the image boots with the stock DTB, and the box's APT hook builds the custom one after the first `apt` run),
+- names the result `armbian-s805-UNTESTED-<version>.img`.
+
+To make a newer build the tested one: update `TESTED_VER`, `IMG_URL`, `IMG_SHA256` and `MXQ_DTB_SHA256` in the script, rebuild `boot/meson8b-xsr.dtb` with `xsr-dtb-build`, test-flash, and publish a release with a copy of the Armbian image (and point `IMG_MIRROR` at it).
 
 ## Kernel updates
 
