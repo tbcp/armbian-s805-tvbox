@@ -22,6 +22,8 @@ set -euo pipefail
 
 IMG_URL="https://github.com/armbian/community/releases/download/26.11.0-trunk.130/Armbian_community_26.11.0-trunk.130_Onecloud_trixie_current_6.12.28_minimal.img.xz"
 IMG_SHA256="5d7ae7515a4f54327cf1b2a0d7f05d4c48fee23a4714dfe4f4b7c5cdb65b6400"
+# Armbian only keeps its last few community builds; this repo's v1.0 release has a copy
+IMG_MIRROR="https://github.com/tbcp/armbian-s805-tvbox/releases/download/v1.0/${IMG_URL##*/}"
 # meson8b-mxq.dtb in that image; boot/meson8b-xsr.dtb was built from exactly this file
 MXQ_DTB_SHA256="70f4af6ceb956665c8d47ae68686fcc9b5003854ad8d213faff75cd8cd6efc39"
 
@@ -48,7 +50,10 @@ if [ -n "${IMG_XZ:-}" ]; then
   ln -s "$(realpath "$IMG_XZ")" "$WORK/armbian.img.xz"
 else
   echo ">> downloading the official Armbian image"
-  curl -fL --progress-bar -o "$WORK/armbian.img.xz" "$IMG_URL"
+  if ! curl -fL --progress-bar -o "$WORK/armbian.img.xz" "$IMG_URL"; then
+    echo ">> not available from Armbian anymore, using the copy in this repo's v1.0 release"
+    curl -fL --progress-bar -o "$WORK/armbian.img.xz" "$IMG_MIRROR"
+  fi
 fi
 echo "$IMG_SHA256  $WORK/armbian.img.xz" | sha256sum -c --quiet - || { echo "checksum mismatch"; exit 1; }
 echo ">> decompressing to $OUT"

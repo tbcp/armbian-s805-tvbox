@@ -33,7 +33,11 @@ Good for Pi-hole and small Docker containers. Geekbench 5 (32-bit): 74 single-co
 
 ## Quick start
 
-### 1. Build the image (on a Linux PC, no root needed)
+### 1. Get the image
+
+**Easiest:** download `armbian-s805-tvbox-v1.0.img.xz` from [Releases](https://github.com/tbcp/armbian-s805-tvbox/releases) and check it against the `.sha256` file next to it. It's exactly what `build-image.sh` produces, with the default hostname and a MAC generated on first boot.
+
+**Or build it yourself** (on a Linux PC, no root needed), for example to set your own MAC or hostname:
 
 ```sh
 git clone https://github.com/tbcp/armbian-s805-tvbox && cd armbian-s805-tvbox
@@ -46,8 +50,11 @@ The script downloads the official Armbian image, checks its checksum, and adds t
 
 ### 2. Write it to an SD card
 
+With [balenaEtcher](https://etcher.balena.io/) or Raspberry Pi Imager ("Use custom"), which take the `.img.xz` directly, or on Linux:
+
 ```sh
-sudo dd if=armbian-s805.img of=/dev/sdX bs=4M conv=fsync status=progress
+xz -dc armbian-s805-tvbox-v1.0.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress   # downloaded
+sudo dd if=armbian-s805.img of=/dev/sdX bs=4M conv=fsync status=progress                        # self-built
 ```
 
 ### 3. One time only: change the boot order
