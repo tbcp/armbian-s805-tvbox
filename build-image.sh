@@ -127,7 +127,12 @@ else
   if ! curl -fL --progress-bar -o "$WORK/armbian.img.xz" "$IMG_URL"; then
     [ -n "$IMG_MIRROR" ] || { echo "download failed"; exit 1; }
     echo ">> not available from Armbian anymore, using the copy in this repo's v1.0 release"
-    curl -fL --progress-bar -o "$WORK/armbian.img.xz" "$IMG_MIRROR"
+    curl -fL --progress-bar -o "$WORK/armbian.img.xz" "$IMG_MIRROR" || {
+      echo "!! The tested Armbian image ($TESTED_VER) isn't available anywhere anymore."
+      echo "!! Use a copy you have:  IMG_XZ=/path/to/${IMG_URL##*/} $0"
+      echo "!! or try Armbian's newest build (untested):  $0 --latest"
+      exit 1
+    }
   fi
 fi
 echo "$IMG_SHA256  $WORK/armbian.img.xz" | sha256sum -c --quiet - || { echo "checksum mismatch"; exit 1; }
