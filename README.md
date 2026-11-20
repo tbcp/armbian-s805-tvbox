@@ -9,7 +9,7 @@ Turns a cheap Amlogic **S805** Android TV box into a small Debian server: offici
 > [!NOTE]
 > **Made with AI.** The research, scripts and docs in this repo were written with Claude Code (an AI assistant). I did the hardware side and tested everything on **one box**. It works for me; it may not for you.
 >
-> **No support.** Provided as-is. I don't take feature requests. Forks are welcome.
+> **Bug reports welcome, support limited.** If something doesn't work on your box, please [open an issue](https://github.com/tbcp/armbian-s805-tvbox/issues): it may be broken on mine too. I can't promise fixes or take feature requests. Forks are welcome.
 
 ![board](photos/board-top.jpg)
 

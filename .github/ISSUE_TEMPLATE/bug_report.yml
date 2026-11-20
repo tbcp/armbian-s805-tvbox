@@ -1,0 +1,32 @@
+name: Bug report
+description: Something doesn't work on your S805 box
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! This is a hobby project tested on one box; I'll read every report, but can't promise a fix.
+  - type: input
+    id: board
+    attributes:
+      label: Box and board
+      description: Brand/model, and the sticker or silkscreen on the board if you can see it
+      placeholder: e.g. MXQ S805, board M201 1G+8G
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: card
+    attributes:
+      label: SD card
+      description: Brand, size, and whether the image was built from the current repo
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output (if the box boots)
+      description: "Paste the output of: uname -r; cat /proc/cmdline; dmesg | grep -iE 'mmc|8189|error|rcu' | tail -40"
+      render: text
